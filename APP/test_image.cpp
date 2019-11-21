@@ -74,7 +74,7 @@ void command_execution(string command_line, unsigned int *picture)
 		}
 		if(match[1] == "LINE_H")
 		{
-			regex h_line("(\\d+), (\\d+), (\\d+); (BLACK|RED|GREEN|BLUE|YELLOW)");
+			regex h_line("(\\d+),(\\d+),(\\d+);(BLACK|RED|GREEN|BLUE|YELLOW)");
 			if(regex_search(command_line, match, h_line))
 			{
 				cout << "LINE_H is" << match[1] << match[2] << match[3] << match[4] << endl; 
@@ -83,7 +83,7 @@ void command_execution(string command_line, unsigned int *picture)
 		}
 		if(match[1] == "LINE_V")
 		{
-			regex v_line("(\\d+), (\\d+), (\\d+); (BLACK|RED|GREEN|BLUE|YELLOW)");
+			regex v_line("(\\d+),(\\d+),(\\d+);(BLACK|RED|GREEN|BLUE|YELLOW)");
 			if(regex_search(command_line, match, v_line))
 			{
 				cout << "LINE_V is" << match[1] << match[2] << match[3] << match[4] << endl; 
@@ -92,10 +92,10 @@ void command_execution(string command_line, unsigned int *picture)
 		}
 		if(match[1] == "RECT")
 		{
-			regex rect("(\\d+), (\\d+), (\\d+), (\\d+); (BLACK|RED|GREEN|BLUE|YELLOW)");
+			regex rect("(\\d+),(\\d+),(\\d+),(\\d+);(BLACK|RED|GREEN|BLUE|YELLOW)");
 			if(regex_search(command_line, match, rect))
 			{
-				cout << "LINE_V is" << match[1] << match[2] << match[3] << match[4] << match[5] << endl; 
+				cout << "RECT is" << match[1] << match[2] << match[3] << match[4] << match[5] << endl; 
 				rectangle(stoi(match[1]), stoi(match[2]), stoi(match[3]), stoi(match[4]), get_colour(match[5]), picture);
 			}
 		}
@@ -119,13 +119,25 @@ int main(int argc, char *argv[])
 	else
     	command_file = fopen(argv[1], "r");
 
-    if(command_file == NULL)
+    	if(command_file == NULL)
 	{
         puts("File could not be opened.");
    		return -1;
 	}
-    puts("File opened!");
+    	puts("File opened!");
 	command_line = (char*) malloc(nbytes + 1);
+
+	
+
+	int fd;
+	fd = open("/dev/vga_dma", O_RDWR|O_NDELAY);
+	if (fd < 0)
+	{
+		printf("Cannot open /dev/vga for write\n");
+		return -1;
+	}
+
+	picture = (unsigned int*)mmap(0,640*480*4, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 
 	while(getline(&command_line, &nbytes, command_file) >= 0)
 	{
@@ -135,18 +147,7 @@ int main(int argc, char *argv[])
 	}
     	fclose(command_file);
 
-
-	int fd;
-	int *p;
-	fd = open("/dev/vga_dma", O_RDWR|O_NDELAY);
-	if (fd < 0)
-	{
-		printf("Cannot open /dev/vga for write\n");
-		return -1;
-	}
-	p=(int*)mmap(0,640*480*4, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-	memcpy(p, picture, MAX_PKT_SIZE);
-	munmap(p, MAX_PKT_SIZE);
+	munmap(picture, MAX_PKT_SIZE);
 	close(fd);
 	if (fd < 0)
 	{
